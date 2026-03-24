@@ -435,4 +435,87 @@ public with sharing class SOQL {
 		// Update the Opportunities
 		update closedOpps;
 	}
+
+
+	/**
+	 * March 23, 2026 - Breakout Room Student Solution:  
+	 * Given a list of Account industries, create a new Opportunity for each account in that industry that has less than 2 open Opportunities
+	 * @return number of new Opportunities created
+	 */
+	public static Integer createIndustryOpps(List<String> industries){
+		// Write a method that takes in a list of strings.
+		// Search for all accounts where Account.Industry matches any of the input strings.
+		List<Account> accts = [SELECT Id, (SELECT Id, AccountId FROM Opportunities WHERE StageName != 'Closed Won' AND StageName != 'Closed Lost') 
+							FROM Account 
+							WHERE Industry IN :industries];
+		
+		// For each of these accounts, determine if they have at least two open opportunities.
+		Map<Id, Integer> acctIdToNumOpps = new Map<Id,Integer>();
+		for(Account acct : accts){
+			Integer acctOppCount = 0;
+			for (Opportunity opp : acct.Opportunities){
+				acctOppCount += 1;
+			}
+			acctIdToNumOpps.put(acct.Id, acctOppCount);
+		}
+
+		// If they do not, create one new opportunity.
+		List<Opportunity> oppsToCreate = new List<Opportunity>();
+		for(Id acctId : acctIdToNumOpps.keySet()){
+			Boolean lessThan2 = acctIdToNumOpps.get(acctId) < 2;
+			if(lessThan2){
+				Opportunity opp = new Opportunity();
+				opp.AccountId = acctId;
+				opp.Name = 'Test Opp ' + acctId;
+				opp.CloseDate = Date.today() + 7;
+				opp.StageName = 'Prospecting';
+				oppsToCreate.add(opp);
+			}
+		}
+		insert oppsToCreate;
+		System.debug('Inserted new opps: ' + oppsToCreate.size());
+
+		//Return the number of opportunities created
+		return oppsToCreate.size();
+
+	}
+
+	/**
+	 * March 23, 2026 - Instructor Solution  
+	 * Given a list of Account industries, create a new Opportunity for each account in that industry that has less than 2 open Opportunities
+	 * @return number of new Opportunities created
+	 */
+	public static Integer oppIndustryQuery(List<String> industries)
+    {
+        Map<Id,Account> accountsByIndustry = new map<Id, Account>([SELECT id FROM Account WHERE Industry IN :industries]);
+        AggregateResult[] oppCounts = [SELECT accountId, count(id) FROM Opportunity WHERE AccountId IN :accountsByIndustry.keySet() AND IsClosed = false GROUP BY accountId];
+        Map<Id, Integer> oppsByAccountId = new Map<Id, Integer>();
+        for(AggregateResult ar : oppCounts)
+        {
+            oppsByAccountId.put((Id)ar.get('accountId'), (Integer)ar.get('expr0'));            
+        }
+
+        List<Opportunity> newOpps = new List<Opportunity>();
+        for (Id a : accountsByIndustry.keySet())
+        {
+            Integer oppCount = oppsByAccountId.get(a);
+            if(oppCount == null || oppCount < 2)
+            {
+                newOpps.add(createOpp(a));
+            }
+        }
+
+        insert newOpps;
+        return newOpps.size();
+    }
+
+    private static Opportunity createOpp(Id a)
+    {
+        Opportunity o = new Opportunity();
+        o.Name = 'March 23';
+        o.AccountId = a;
+        o.CloseDate = date.today();
+        o.StageName = 'Prospecting';
+        return o;
+    }
 }
