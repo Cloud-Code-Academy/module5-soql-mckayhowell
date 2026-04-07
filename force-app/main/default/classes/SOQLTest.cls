@@ -678,13 +678,11 @@ public with sharing class SOQLTest {
 	static void testGetAccountsWithContactsByState() {
 		// Create test data
 		// Generate random number of accounts and contacts between 1 and 10
-		// NOTE: my dev org had State & Country Picklists enabled so it requires 
-		// populating CountryCode and StateCode with the two character values
 		Integer numAccounts = (Integer) Math.floor(Math.random() * 10) + 1;
 		List<Account> accounts = new List<Account>();
 		for (Integer i = 0; i < numAccounts; i++) {
 			String billingState = Math.mod(i, 2) == 0 ? 'CA' : 'NY';
-			accounts.add(new Account(Name = 'Test Account ' + i, BillingCountryCode = 'US', BillingStateCode = billingState));
+			accounts.add(new Account(Name = 'Test Account ' + i, BillingCountry = 'US', BillingState = billingState));
 		}
 
 		insert accounts;
@@ -699,7 +697,7 @@ public with sharing class SOQLTest {
 			for (Integer i = 0; i < numContacts; i++) {
 				String billingState = Math.mod(i, 2) == 0 ? 'CA' : 'NY';
 				tempContList.add(
-					new Contact(LastName = 'Test Contact ' + i, AccountId = acc.Id, MailingCountryCode = 'US', MailingStateCode = billingState)
+					new Contact(LastName = 'Test Contact ' + i, AccountId = acc.Id, MailingCountry = 'US', MailingState = billingState)
 				);
 				if (billingState == 'CA') {
 					numberOfContactsInState++;
@@ -718,7 +716,7 @@ public with sharing class SOQLTest {
 
 		// Assert that the number of contacts returned is correct
 		System.assertEquals(
-			testAccount.BillingStateCode == 'CA' ? numberOfContactsInState : numberOfContactsInNY,
+			testAccount.BillingState == 'CA' ? numberOfContactsInState : numberOfContactsInNY,
 			contactsByState.size(),
 			'Number of contacts returned is incorrect.'
 		);

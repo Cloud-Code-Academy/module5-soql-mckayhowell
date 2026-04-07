@@ -187,7 +187,7 @@ public with sharing class SOQL {
 	 */
 	public static Decimal getTotalRevenueByStage(String stage) {
 		// Use AggregateQuery to get the total revenue
-		AggregateResult revenueResult = [SELECT SUM(Amount) revenue FROM Opportunity WHERE StageName = :stage OR Amount > 10000];
+		AggregateResult revenueResult = [SELECT SUM(Amount) revenue FROM Opportunity WHERE StageName = :stage];
 		Decimal revenue = (Decimal) revenueResult.get('revenue');
 
 		// Return the total revenue
@@ -311,13 +311,13 @@ public with sharing class SOQL {
 	 */
 	public static List<Contact> getAccountsWithContactsByState(Id accountId) {
 		// Query the Account
-		Account acct = [SELECT BillingStateCode FROM Account WHERE Id = :accountId];
+		Account acct = [SELECT BillingState FROM Account WHERE Id = :accountId];
 
 		// Store the Account's BillingState
-		String billingStateCode = acct.BillingStateCode;
+		String billingState = acct.BillingState;
 
 		// Query the Contacts
-		List<Contact> contacts = [SELECT Id FROM Contact WHERE MailingStateCode = :billingStateCode];
+		List<Contact> contacts = [SELECT Id FROM Contact WHERE MailingState = :billingState];
 		return contacts; // Replace null with the variable you used to store the result
 	}
 
@@ -377,8 +377,7 @@ public with sharing class SOQL {
 			// Loop through each original line item
 			for (OpportunityLineItem origItem : origItems){
 				// Clone the original line item and add the random number to the quantity
-				OpportunityLineItem cloneItem = origItem;
-				cloneItem.Id = null;
+				OpportunityLineItem cloneItem = origItem.clone(false, false, false, false);
 				cloneItem.OpportunityId = cloneOppId;
 				cloneItem.Quantity += randomInt;
 
@@ -518,4 +517,18 @@ public with sharing class SOQL {
         o.StageName = 'Prospecting';
         return o;
     }
+
+
+	/**
+	 * April 7, 2026 - HW Feedback challenge
+	 * Try writing a query that uses a subquery to find all Accounts that have at least one Contact but zero Opportunities. 
+	 * It's great practice for using NOT IN with subqueries!
+	 * @return collection of identified Accounts
+	 */
+	public static List<Account> acctContactsNoOppsQuery(){
+		List<Account> accts = [SELECT Id FROM Account 
+								WHERE Id IN (SELECT AccountId FROM Contact WHERE AccountId != null) 
+								AND Id NOT IN (SELECT AccountId FROM Opportunity WHERE AccountId != null)];
+		return accts;
+	}
 }
